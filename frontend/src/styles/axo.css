@@ -1,0 +1,27 @@
+/* AXO Networks Premium CSS */
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.buyer-main {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+}
+
+.stat-card {
+  background: white !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  margin: 10px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.welcome-title {
+  color: white !important;
+}
+
+.create-rfq-btn {
+  background: #ff6b6b !important;
+  border-radius: 50px !important;
+}
