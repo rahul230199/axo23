@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Supplier Store| AXO Networks</title>
+    <meta name="description" content="AXO Networks brings suppliers, production, and capital into one system so nothing slows you down.">
+    <!-- Primary favicon -->
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon/favicon-96x96.png" />
+
+    <!-- .ico fallback (important for older browsers) -->
+    <link rel="shortcut icon" href="/icons/favicon/favicon.ico" />
+
+    <!-- Apple devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/favicon/apple-touch-icon.png" />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="styles/index.css">
+    <!-- <link rel="stylesheet" href="styles/theAxis.css"> -->
+    <link rel="stylesheet" href="styles/supplierStore.css">
+</head>
+<body>
+
+<div class="atmospheric-bg">
+    <img src="https://static.wixstatic.com/media/3d4c2a_6a3285779af54e5eb504103e8f87828e~mv2.png" alt="Atmospheric Texture" loading="eager" fetchpriority="high">
+</div>
+
+<header class="header" id="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">AXO Networks</a>
+            <div class="right-side">
+                <div class="nav">
+                    
+                    <div class="nav-dropdown">
+                        <button class="nav-item dropdown-trigger" type="button">
+                            Axis
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </button>
+
+                        <div class="mega-menu">
+
+                            <a href="/supplierStore" class="mega-item">
+                              
+
+                                <div class="mega-content">
+                                    <span>Suppliers</span>
+                                    
+                                </div>
+                            </a>
+
+                            <a href="/partners" class="mega-item">
+                               
+
+                                <div class="mega-content">
+                                    <span>Partners</span>
+                                   
+                                </div>
+                            </a>
+
+                        </div>
+                    </div>
+                    <a href="/industrial-os" class="nav-item">Industrial OS</a>
+                    <a href="/about" class="nav-item">About</a>
+                    <a href="/blog" class="nav-item">Insights</a>
+                    <a href="/careers" class="nav-item">Careers</a>
+                </div>
+                <a href="/login" class="connect-btn">LOGIN</a>
+            </div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+<div class="mobile-sidebar" id="mobileSidebar">
+    <button class="close-sidebar" id="closeSidebar">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="mobile-nav">
+        
+        <div class="mobile-dropdown">
+            <button class="mobile-dropdown-trigger">
+                <span>Axis</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+
+            <div class="mobile-dropdown-menu">
+                <a href="/supplierStore" class="mobile-sub-item">
+                    Suppliers
+                </a>
+
+                <a href="/partners" class="mobile-sub-item">
+                    Advanced Manufacturing Partners
+                </a>
+            </div>
+        </div>
+        <a href="/industrial-os" class="mobile-nav-item">Industrial OS</a>
+        <a href="/about" class="mobile-nav-item">About</a>
+        <a href="/blog" class="mobile-nav-item">Insights</a>
+        <a href="/careers" class="mobile-nav-item">Careers</a>
+        <a href="/login" class="mobile-connect-btn">LOGIN</a>
+    </div>
+</div>
+<!-- <div class="sidebar-overlay" id="sidebarOverlay"></div> -->
+
+
+
+<main>
+<!--  -->
+    <section class="supplier-intro">
+
+    <h1>GRAVITY OF TRUST</h1>
+
+    <p>
+        Find Verified Suppliers. Start Production in days.
+    </p>
+
+    <div class="supplier-search">
+
+        <i class="fas fa-search"></i>
+
+        <input 
+            type="text" 
+            id="supplierSearch"
+            placeholder="Search supplier name..."
+        >
+
+    </div>
+
+    </section>
+
+
+    <section class="suppliers-section" id="supplierss">
+        <div class="container">
+
+            <div class="suppliers-grid" id="suppliersGrid">
+                <!-- Dynamic supplier cards render here -->
+            </div>
+
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>AXO Networks</h3>
+                <p>AuroXOrigin Networks Private Limited</p>
+                <p class="copyright">© 2026</p>
+            </div>
+            <div class="footer-links-center">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/blog">Insights</a>
+                <a href="/contact">Contact Us</a>
+		<a href="https://www.linkedin.com/company/axo-networks/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>
+            </div>
+        </div>
+    </div>
+</footer>
+<script>
+
+/* =========================================================
+   SUPPLIERS DATA
+========================================================= */
+// const suppliers = await fetch('/api/suppliers');
+const suppliers = [
+
+  {
+    id: 1,
+    name: "Global Marketing Services (GMS)",
+    capability: "Lithium Battery Pack Manufacturer for EV Applications",
+
+    image: "/assets/gms-logo.png",
+
+    verified: true,
+
+    products: "48V–72V Lithium Battery Packs",
+    capacity: "50 units / month",
+    location: "Bangalore",
+    leadTime: "3 months",
+    moq: "50 units",
+
+    tags: "Battery · EV · Lithium · Custom Packs"
+  },
+
+  {
+    id: 2,
+    name: "VoltEdge Energy Systems",
+    capability: "Advanced Lithium-ion Battery Systems for EV Platforms",
+
+    image: "/assets/voltEdge-logo.png",
+
+    verified: false,
+
+    products: "Modular Battery Packs & BMS",
+    capacity: "120 units / month",
+    location: "Pune",
+    leadTime: "6–8 weeks",
+    moq: "30 units",
+
+    tags: "Energy Storage · EV · BMS · Modular Systems"
+  },
+
+  {
+    id: 3,
+    name: "MotionDrive Technologies",
+    capability: "Electric Powertrain Systems for Automotive & Industrial EVs",
+
+    image: "/assets/motiondrive-logo.png",
+
+    verified: false,
+
+    products: "Motors, Inverters, Drivetrain Systems",
+    capacity: "80 units / month",
+    location: "Chennai",
+    leadTime: "10–12 weeks",
+    moq: "20 units",
+
+    tags: "Motors · EV · Powertrain · Industrial Mobility"
+  },
+   {
+    id: 4,
+    name: "EV Rides Technologies",
+    capability: "Electric Powertrain Systems for Automotive & Industrial EVs",
+
+    image: "/assets/ev-rides-logo.png",
+
+    verified: false,
+
+    products: "Motors, Inverters, Drivetrain Systems",
+    capacity: "80 units / month",
+    location: "Chennai",
+    leadTime: "10–12 weeks",
+    moq: "20 units",
+
+    tags: "Motors · EV · Powertrain · Industrial Mobility"
+  }
+  
+
+];
+
+
+/* =========================================================
+   RENDER SUPPLIERS
+========================================================= */
+
+function renderSuppliers(data) {
+
+    const grid = document.getElementById('suppliersGrid');
+
+    if (!grid) return;
+
+    if (!data.length) {
+
+        grid.innerHTML = `
+            <div class="no-results">
+                <h3>No suppliers found</h3>
+                <p>Try another search keyword.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    grid.innerHTML = data.map(supplier => `
+
+        <div class="supplier-card">
+
+            <div class="card-image">
+
+                <img src="${supplier.image}" alt="${supplier.name}">
+
+                <div class="verified-badge ${supplier.verified ? 'verified' : 'pending'}">
+
+                    <i class="fas ${supplier.verified ? 'fa-check-circle' : 'fa-clock'}"></i>
+
+                    ${supplier.verified ? 'AXO VERIFIED' : 'VERIFICATION PENDING'}
+
+                </div>
+
+            </div>
+
+            <div class="card-content">
+
+                <h3>${supplier.name}</h3>
+
+                <p class="capability">
+                    ${supplier.capability}
+                </p>
+
+                <div class="specs">
+
+                    <p><strong>Products:</strong> ${supplier.products}</p>
+
+                    <p><strong>Capacity:</strong> ${supplier.capacity}</p>
+
+                    <p><strong>Location:</strong> ${supplier.location}</p>
+
+                    <p><strong>Lead Time:</strong> ${supplier.leadTime}</p>
+
+                    <p><strong>MOQ:</strong> ${supplier.moq}</p>
+
+                </div>
+
+                <p class="tags">
+                    ${supplier.tags}
+                </p>
+
+                <a href="/supplierStore" class="cta-button-large card-cta">
+                    <span>
+                        Request Quote
+                        <i class="fas fa-arrow-right"></i>
+                    </span>
+                </a>
+
+            </div>
+
+        </div>
+
+    `).join('');
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+const searchInput = document.getElementById('supplierSearch');
+
+if (searchInput) {
+
+    searchInput.addEventListener('input', (e) => {
+
+        const keyword = e.target.value.toLowerCase();
+
+        const filtered = suppliers.filter(supplier => {
+
+            return (
+                supplier.name.toLowerCase().includes(keyword) ||
+                supplier.capability.toLowerCase().includes(keyword) ||
+                supplier.tags.toLowerCase().includes(keyword) ||
+                supplier.location.toLowerCase().includes(keyword)
+            );
+
+        });
+
+        renderSuppliers(filtered);
+
+    });
+
+}
+
+
+/* =========================================================
+   INITIAL RENDER
+========================================================= */
+
+renderSuppliers(suppliers);
+
+
+
+</script>
+<script>
+// Mobile-optimized JavaScript with video autoplay fix
+(function() {
+    // Mobile menu functionality
+    const header = document.getElementById('header');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileSidebar = document.getElementById('mobileSidebar');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function openMobileMenu() {
+        mobileSidebar.classList.add('open');
+        sidebarOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+        mobileSidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        mobileMenuBtn.addEventListener('touchstart', openMobileMenu, { passive: true });
+    }
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', closeMobileMenu);
+    }
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeMobileMenu);
+    }
+
+    document.querySelectorAll('.mobile-nav-item, .mobile-connect-btn').forEach(item => {
+        item.addEventListener('click', closeMobileMenu);
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileSidebar && mobileSidebar.classList.contains('open')) {
+            closeMobileMenu();
+        }
+    });
+
+    // dropdown menu nav
+    const mobileDropdownTrigger = document.querySelector('.mobile-dropdown-trigger');
+    const mobileDropdownMenu = document.querySelector('.mobile-dropdown-menu');
+
+    if (mobileDropdownTrigger) {
+        mobileDropdownTrigger.addEventListener('click', () => {
+            mobileDropdownMenu.classList.toggle('open');
+            mobileDropdownTrigger.classList.toggle('active');
+        });
+    }
+
+    const dropdown = document.querySelector('.nav-dropdown');
+    const trigger = document.querySelector('.dropdown-trigger');
+
+    if (trigger && dropdown) {
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            dropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    }
+    // Throttled scroll handler
+    let lastScrollTop = 0;
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                if (scrollTop > lastScrollTop && scrollTop > 100) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+                if (scrollTop > 50) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+                lastScrollTop = scrollTop;
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+    })();
+</script>
+</body>
+</html>
