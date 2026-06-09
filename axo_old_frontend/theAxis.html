@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axis | AXO Networks</title>
+    <!-- Primary favicon -->
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon/favicon-96x96.png" />
+
+    <!-- .ico fallback (important for older browsers) -->
+    <link rel="shortcut icon" href="/icons/favicon/favicon.ico" />
+
+    <!-- Apple devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/favicon/apple-touch-icon.png" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fonts -->
+  
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles/index.css">
+
+    <!-- ONLY additional -->
+    <link rel="stylesheet" href="styles/theAxis.css">
+</head>
+<body id="top">
+
+<!-- SAME HEADER -->
+<header class="header" id="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">AXO Networks</a>
+            <div class="right-side">
+                <div class="nav">
+                    <a href="/industrial-os" class="nav-item">Industrial OS</a>
+                    <div class="nav-dropdown">
+                        <button class="nav-item dropdown-trigger" type="button">
+                            Axis
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </button>
+
+                        <div class="mega-menu">
+
+                                <div class="mega-icon">
+                                    <i class="fas fa-industry"></i>
+                                </div>
+
+                                <div class="mega-content">
+                                    <span>Suppliers</span>
+                                    <p>Verified component providers</p>
+                                </div>
+                            </a>
+
+                            <a href="/partners" class="mega-item">
+                                <div class="mega-icon">
+                                    <i class="fas fa-gears"></i>
+                                </div>
+
+                                <div class="mega-content">
+                                    <span>Advanced Manufacturing Partners</span>
+                                    <p>Precision production ecosystem</p>
+                                </div>
+                            </a>
+
+                        </div>
+                    </div>
+                    <a href="/about" class="nav-item">About</a>
+                    <a href="/blog" class="nav-item">Insights</a>
+                    <a href="/careers" class="nav-item">Careers</a>
+                </div>
+                <a href="/login" class="connect-btn">LOGIN</a>
+            </div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- SAME MOBILE MENU -->
+<div class="mobile-sidebar" id="mobileSidebar">
+    <button class="close-sidebar" id="closeSidebar">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="mobile-nav">
+        <a href="/industrial-os" class="mobile-nav-item">Industrial OS</a>
+        <div class="mobile-dropdown">
+            <button class="mobile-dropdown-trigger">
+                <span>Axis</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="mobile-dropdown-menu">
+                    Suppliers
+                </a>
+                <a href="/partners" class="mobile-sub-item">
+                    Advanced Manufacturing Partners
+                </a>
+            </div>
+        </div>
+        <a href="/about" class="mobile-nav-item">About</a>
+        <a href="/blog" class="mobile-nav-item">Insights</a>
+        <a href="/careers" class="mobile-nav-item">Careers</a>
+        <a href="/login" class="mobile-connect-btn">LOGIN</a>
+    </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- 🔥 ONLY THIS SECTION IS NEW -->
+
+<main class="store-page">
+
+    <!-- we will build everything inside this -->
+    <section class="store-hero">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <h1>The Gravity<br>of Trust.</h1>
+
+            <p>
+                The Axis: Connecting every maker, startup, and OEM to the
+            </p>
+
+            <div class="hero-cta">
+                <a href="#axis-decision" class="cta-button-large">
+                    <span>Explore the Axis <i class="fas fa-arrow-right"></i></span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+ 
+</main>
+
+
+<!-- SAME FOOTER -->
+<footer class="footer" >
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>AXO Networks</h3>
+                <p>AuroXOrigin Networks Private Limited</p>
+                <p class="copyright">© 2026</p>
+            </div>
+            <div class="footer-links-center">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/blog">Insights</a>
+                <a href="/contact">Contact Us</a>
+		<a href="https://www.linkedin.com/company/axo-networks/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- SAME JS (copied from index.html) -->
+
+<script>
+(function() {
+    const header = document.getElementById('header');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileSidebar = document.getElementById('mobileSidebar');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function openMobileMenu() {
+        mobileSidebar.classList.add('open');
+        sidebarOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+        mobileSidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        // mobileMenuBtn.addEventListener('touchstart', openMobileMenu, { passive: true });
+    }
+
+    if (closeSidebar) closeSidebar.addEventListener('click', closeMobileMenu);
+    if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeMobileMenu);
+
+    document.querySelectorAll('.mobile-nav-item, .mobile-connect-btn').forEach(item => {
+        item.addEventListener('click', closeMobileMenu);
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileSidebar.classList.contains('open')) {
+            closeMobileMenu();
+        }
+    });
+
+    const mobileDropdownTrigger = document.querySelector('.mobile-dropdown-trigger');
+    const mobileDropdownMenu = document.querySelector('.mobile-dropdown-menu');
+
+    if (mobileDropdownTrigger) {
+        mobileDropdownTrigger.addEventListener('click', () => {
+            mobileDropdownMenu.classList.toggle('open');
+        });
+    }
+
+    const dropdown = document.querySelector('.nav-dropdown');
+    const trigger = document.querySelector('.dropdown-trigger');
+
+    if (trigger && dropdown) {
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            dropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    }
+
+  
+    let lastScrollTop = 0;
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                if (scrollTop > lastScrollTop && scrollTop > 100) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+
+                if (scrollTop > 50) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+
+                lastScrollTop = scrollTop;
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+})();
+</script>
+<script> // animation
+window.addEventListener("load", () => {
+    const hero = document.querySelector(".hero-content");
+    
+    setTimeout(() => {
+        hero.classList.add("show");
+    }, 200); // small delay for smooth feel
+});
+
+
+</script>
+
+
+</body>
+<script>
+function openProductList(id) {
+    window.location.href = `/productList?id=${id}`;
+}
+</script>
+
+
+</html>
