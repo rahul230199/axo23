@@ -1,133 +1,194 @@
-import { 
-  RFQ, Quote, PurchaseOrder, Document, 
-  DashboardData, SupplierDashboardData, Message, User, Milestone
-} from '../types/real.types';
+import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE = '/api';
 
-const getToken = () => localStorage.getItem('token');
-
-async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`,
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'API call failed');
-  }
-
-  return response.json();
-}
+const getAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 export const realApi = {
-  // Buyer Dashboard
-  getDashboardData: (): Promise<DashboardData> => apiCall('/buyer/dashboard'),
-  
-  // RFQs
-  getRFQs: (params?: { status?: string }): Promise<RFQ[]> => 
-    apiCall(`/buyer/rfqs${params?.status ? `?status=${params.status}` : ''}`),
-  
-  getRFQById: (id: string): Promise<RFQ> => apiCall(`/buyer/rfqs/${id}`),
-  
-  createRFQ: (data: FormData): Promise<RFQ> => 
-    fetch(`${API_URL}/buyer/rfqs`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: data,
-    }).then(res => res.json()),
-  
-  publishRFQ: (id: string): Promise<RFQ> => 
-    apiCall(`/buyer/rfqs/${id}/publish`, { method: 'POST' }),
-  
-  deleteRFQ: (id: string): Promise<{ success: boolean }> => 
-    apiCall(`/buyer/rfqs/${id}`, { method: 'DELETE' }),
-  
-  // Quotes
-  getQuotesForRFQ: (rfqId: string): Promise<Quote[]> => 
-    apiCall(`/buyer/rfqs/${rfqId}/quotes`),
-  
-  acceptQuote: (quoteId: string): Promise<PurchaseOrder> => 
-    apiCall(`/buyer/quotes/${quoteId}/accept`, { method: 'POST' }),
-  
-  rejectQuote: (quoteId: string, reason?: string): Promise<{ success: boolean }> => 
-    apiCall(`/buyer/quotes/${quoteId}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
-  
-  // Purchase Orders (Buyer)
-  getPOs: (params?: { status?: string }): Promise<PurchaseOrder[]> => 
-    apiCall(`/buyer/pos${params?.status ? `?status=${params.status}` : ''}`),
-  
-  getPOById: (id: string): Promise<PurchaseOrder> => apiCall(`/buyer/pos/${id}`),
-  
-  // Supplier APIs
-  getSupplierDashboard: (): Promise<SupplierDashboardData> => apiCall('/supplier/dashboard'),
-  
-  getAvailableRFQs: (): Promise<RFQ[]> => apiCall('/supplier/rfqs'),
-  
-  getSupplierRFQById: (id: string): Promise<RFQ> => apiCall(`/supplier/rfqs/${id}`),
-  
-  submitQuote: (rfqId: string, data: any): Promise<Quote> => 
-    apiCall(`/supplier/rfqs/${rfqId}/quote`, { method: 'POST', body: JSON.stringify(data) }),
-  
-  getSupplierQuotes: (): Promise<Quote[]> => apiCall('/supplier/quotes'),
-  
-  getSupplierPOs: (): Promise<PurchaseOrder[]> => apiCall('/supplier/pos'),
-  
-  getSupplierPOById: (id: string): Promise<PurchaseOrder> => apiCall(`/supplier/pos/${id}`),
-  
-  updateMilestone: (poId: string, milestoneId: string, status: string, notes?: string): Promise<Milestone> => 
-    apiCall(`/supplier/pos/${poId}/milestones/${milestoneId}`, { 
-      method: 'PUT', 
-      body: JSON.stringify({ status, notes }) 
-    }),
-  
-  // Messages
-  getMessages: (poId: string): Promise<Message[]> => apiCall(`/messages/${poId}`),
-  
-  sendMessage: (poId: string, content: string, attachments?: File[]): Promise<Message> => {
-    const formData = new FormData();
-    formData.append('content', content);
-    attachments?.forEach(file => formData.append('attachments', file));
-    
-    return fetch(`${API_URL}/messages/${poId}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData,
-    }).then(res => res.json());
+  // Auth
+  login: async (email: string, password: string) => {
+    const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+    if (res.data.token) localStorage.setItem('token', res.data.token);
+    if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+    return res.data;
   },
-  
+
+  register: async (data: any) => {
+    const res = await axios.post(`${API_BASE}/auth/register`, data);
+    return res.data;
+  },
+
+  getProfile: async () => {
+    const res = await axios.get(`${API_BASE}/auth/me`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Dashboard
+  getDashboard: async () => {
+    const res = await axios.get(`${API_BASE}/dashboard`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Projects
+  getProjects: async () => {
+    const res = await axios.get(`${API_BASE}/projects`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getProjectById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/projects/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  createProject: async (data: any) => {
+    const res = await axios.post(`${API_BASE}/projects`, data, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // RFQs
+  getRFQs: async () => {
+    const res = await axios.get(`${API_BASE}/rfqs`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getRFQById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/rfqs/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  createRFQ: async (data: any) => {
+    const res = await axios.post(`${API_BASE}/rfqs`, data, { headers: getAuthHeader() });
+    return res.data;
+  },
+  publishRFQ: async (rfqId: string) => {
+    const res = await axios.put(`${API_BASE}/rfqs/${rfqId}/publish`, {}, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Supplier RFQs
+  getSupplierRFQs: async () => {
+    const res = await axios.get(`${API_BASE}/supplier/rfqs`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getSupplierRFQById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/supplier/rfqs/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Quotes
+  getQuoteById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/quotes/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  submitQuote: async (rfqId: string, data: any) => {
+    const res = await axios.post(`${API_BASE}/supplier/rfqs/${rfqId}/quote`, data, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getSupplierQuotes: async () => {
+    const res = await axios.get(`${API_BASE}/supplier/quotes`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Purchase Orders
+  getPOs: async () => {
+    const res = await axios.get(`${API_BASE}/pos`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getPOById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/pos/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getSupplierPOs: async () => {
+    const res = await axios.get(`${API_BASE}/pos`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  getSupplierPOById: async (id: string) => {
+    const res = await axios.get(`${API_BASE}/pos/${id}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  acceptQuote: async (quoteId: string) => {
+    const res = await axios.post(`${API_BASE}/quotes/${quoteId}/accept`, {}, { headers: getAuthHeader() });
+    return res.data;
+  },
+  createManualPO: async (data: any) => {
+    const res = await axios.post(`${API_BASE}/pos/manual`, data, { headers: getAuthHeader() });
+    return res.data;
+  },
+  updatePOStatus: async (poId: string, status: string, notes?: string) => {
+    const res = await axios.put(`${API_BASE}/pos/${poId}/status`, { status, notes }, { headers: getAuthHeader() });
+    return res.data;
+  },
+  updatePO: async (poId: string, data: any) => {
+    const res = await axios.put(`${API_BASE}/pos/${poId}`, data, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Messages
+  getMessages: async (poId: string) => {
+    const res = await axios.get(`${API_BASE}/pos/${poId}/messages`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  sendMessage: async (poId: string, content: string) => {
+    const res = await axios.post(`${API_BASE}/pos/${poId}/messages`, { content }, { headers: getAuthHeader() });
+    return res.data;
+  },
+  sendProjectMessage: async (projectId: string, content: string) => {
+    const res = await axios.post(`${API_BASE}/projects/${projectId}/messages`, { content }, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Signatures (updated with name & date)
+  signPO: async (poId: string, signatureData: string, role: string, name?: string, signedDate?: string) => {
+    const res = await axios.post(
+      `${API_BASE}/pos/${poId}/sign`,
+      { signatureData, role, name, signedDate },
+      { headers: getAuthHeader() }
+    );
+    return res.data;
+  },
+
+  // Timeline
+  getTimeline: async (poId: string) => {
+    const res = await axios.get(`${API_BASE}/pos/${poId}/timeline`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
   // Documents
-  getDocuments: (entityId?: string, entityType?: string): Promise<Document[]> => 
-    apiCall(`/documents${entityId ? `?entityId=${entityId}&entityType=${entityType}` : ''}`),
-  
-  uploadDocument: (entityId: string, entityType: string, file: File, type: string): Promise<Document> => {
+  getDocuments: async (params: { entityId?: string; entityType?: string }) => {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await axios.get(`${API_BASE}/documents?${query}`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  uploadDocument: async (file: File, entityId: string, entityType: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('type', type);
     formData.append('entityId', entityId);
     formData.append('entityType', entityType);
-    
-    return fetch(`${API_URL}/documents`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData,
-    }).then(res => res.json());
+    const res = await axios.post(`${API_BASE}/documents/upload`, formData, {
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
   },
-  
-  // Suppliers
-  getSuppliers: (params?: { search?: string }): Promise<any[]> => 
-    apiCall(`/suppliers${params?.search ? `?search=${params.search}` : ''}`),
-  
-  // Profile
-  getProfile: (): Promise<User> => apiCall('/profile'),
-  
-  updateProfile: (data: any): Promise<User> => 
-    apiCall('/profile', { method: 'PUT', body: JSON.stringify(data) }),
-};
+  deleteDocument: async (docId: string) => {
+    const res = await axios.delete(`${API_BASE}/documents/${docId}`, { headers: getAuthHeader() });
+    return res.data;
+  },
 
-export default realApi;
+  // Notifications
+  getNotifications: async () => {
+    const res = await axios.get(`${API_BASE}/notifications`, { headers: getAuthHeader() });
+    return res.data;
+  },
+  markNotificationRead: async (notificationId: string) => {
+    const res = await axios.put(`${API_BASE}/notifications/${notificationId}/read`, {}, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Supplier Networks
+  getSuppliers: async () => {
+    const res = await axios.get(`${API_BASE}/suppliers`, { headers: getAuthHeader() });
+    return res.data;
+  },
+
+  // Health
+  health: async () => {
+    const res = await axios.get(`${API_BASE}/health`);
+    return res.data;
+  }
+};

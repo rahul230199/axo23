@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ChangePassword from "./pages/ChangePassword";
+import Register from "./pages/Register";
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ForceResetPassword from './pages/ForceResetPassword';
@@ -8,6 +10,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Buyer Pages
 import BuyerLayout from './layouts/BuyerLayout';
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
+import ProjectsList from './pages/buyer/ProjectsList';
+import CreateProject from './pages/buyer/CreateProject';
+import ProjectDetails from './pages/buyer/ProjectDetails';
 import RFQList from './pages/buyer/RFQList';
 import CreateRFQ from './pages/buyer/CreateRFQ';
 import RFQDetails from './pages/buyer/RFQDetails';
@@ -15,6 +20,7 @@ import OrdersPage from './pages/buyer/OrdersPage';
 import OrderDetailsPage from './pages/buyer/OrderDetailsPage';
 import DocumentsPage from './pages/buyer/DocumentsPage';
 import BuyerProfilePage from './pages/buyer/BuyerProfilePage';
+import SupplierNetworks from './pages/buyer/SupplierNetworks';
 
 // Supplier Pages
 import SupplierLayout from './layouts/SupplierLayout';
@@ -23,14 +29,17 @@ import AvailableRFQs from './pages/supplier/AvailableRFQs';
 import SubmitQuote from './pages/supplier/SubmitQuote';
 import MyQuotes from './pages/supplier/MyQuotes';
 import SupplierOrders from './pages/supplier/SupplierOrders';
-import SupplierOrderDetails from './pages/supplier/SupplierOrderDetails';
 import SupplierProfile from './pages/supplier/SupplierProfile';
+import SupplierOrderDetails from "./pages/supplier/SupplierOrderDetails";
+import SupplierRFQView from './pages/supplier/SupplierRFQView';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/login">
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/force-reset-password" element={<ForceResetPassword />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -51,6 +60,11 @@ function App() {
         }>
           <Route index element={<Navigate to="/buyer/dashboard" replace />} />
           <Route path="dashboard" element={<BuyerDashboard />} />
+          <Route path="projects" element={<ProjectsList />} />
+          <Route path="projects/create" element={<CreateProject />} />
+          <Route path="projects/:id" element={<ProjectDetails />} />
+          {/* ✅ ADD THIS ROUTE FOR CREATE RFQ WITH PROJECT ID */}
+          <Route path="projects/:projectId/rfq/new" element={<CreateRFQ />} />
           <Route path="rfq" element={<RFQList />} />
           <Route path="rfq/create" element={<CreateRFQ />} />
           <Route path="rfq/:id" element={<RFQDetails />} />
@@ -58,6 +72,7 @@ function App() {
           <Route path="orders/:id" element={<OrderDetailsPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="profile" element={<BuyerProfilePage />} />
+          <Route path="suppliers" element={<SupplierNetworks />} />
         </Route>
 
         {/* Supplier Routes */}
@@ -68,11 +83,12 @@ function App() {
         }>
           <Route index element={<Navigate to="/supplier/dashboard" replace />} />
           <Route path="dashboard" element={<SupplierDashboard />} />
-          <Route path="rfq" element={<AvailableRFQs />} />
+          <Route path="rfqs" element={<AvailableRFQs />} />
           <Route path="rfq/:id/quote" element={<SubmitQuote />} />
           <Route path="quotes" element={<MyQuotes />} />
           <Route path="orders" element={<SupplierOrders />} />
           <Route path="orders/:id" element={<SupplierOrderDetails />} />
+          <Route path="rfq-view/:id" element={<SupplierRFQView />} />
           <Route path="profile" element={<SupplierProfile />} />
         </Route>
       </Routes>

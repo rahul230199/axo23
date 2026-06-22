@@ -57,6 +57,7 @@
 </head>
 <body>
     <div class="container">
+        <button class="back-btn" onclick="window.location.href='/oem-documents.html'">
             <i class="fas fa-arrow-left"></i> Back to Documents
         </button>
         
@@ -93,6 +94,7 @@
             const container = document.getElementById('documentsList');
             
             try {
+                const response = await fetch('/api/oem/documents', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -148,6 +150,7 @@
         }
         
         window.downloadDocument = function(docId, fileName) {
+            window.open(`/api/oem/documents/${docId}/download?token=${token}`, '_blank');
         };
         
         loadDocuments();

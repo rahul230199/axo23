@@ -111,14 +111,13 @@ export interface Milestone {
 
 export interface Message {
   id: string;
-  poId: string;
-  senderId: string;
-  senderName: string;
-  senderRole: 'buyer' | 'supplier';
+  po_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: 'buyer' | 'supplier';
   content: string;
+  created_at: string;
   attachments?: string[];
-  readAt?: string;
-  createdAt: string;
 }
 
 export interface Document {

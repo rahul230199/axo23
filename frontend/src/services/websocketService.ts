@@ -7,7 +7,7 @@ class WebSocketService {
   connect(token: string) {
     if (this.socket?.connected) return;
 
-    this.socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+    this.socket = io(process.env.REACT_APP_API_URL || '/api', {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

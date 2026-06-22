@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RFQ Management | AXO Networks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/oem-dashboard.css" />
+  <link rel="stylesheet" href="./css/shared.css" />
+</head>
+<body>
+
+<div class="oem-container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>AXO Networks</h2><p>OEM Portal</p>
+    </div>
+    <nav class="sidebar-nav" aria-label="OEM navigation">
+      <a href="/oem-dashboard.html"  class="nav-item"><i class="fas fa-chart-line"    aria-hidden="true"></i><span>Dashboard</span></a>
+      <a href="/oem-rfq.html"        class="nav-item active"><i class="fas fa-file-alt" aria-hidden="true"></i><span>RFQ Management</span></a>
+      <a href="/oem-orders.html"     class="nav-item"><i class="fas fa-shopping-cart"  aria-hidden="true"></i><span>Orders</span></a>
+      <a href="/oem-suppliers.html"  class="nav-item"><i class="fas fa-truck"          aria-hidden="true"></i><span>Suppliers</span></a>
+      <a href="/oem-documents.html"  class="nav-item"><i class="fas fa-folder-open"    aria-hidden="true"></i><span>Documents</span></a>
+      <a href="/oem-profile.html"    class="nav-item"><i class="fas fa-building"       aria-hidden="true"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logoutBtn" type="button">
+        <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="Toggle sidebar">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+      </button>
+      <div class="top-bar-right">
+        <div class="notification-bell" id="notificationBell" aria-label="Notifications">
+          <i class="far fa-bell" aria-hidden="true"></i>
+          <span class="notification-badge">0</span>
+        </div>
+        <div class="user-info">
+          <span id="companyName">Loading…</span>
+          <div class="avatar" aria-hidden="true"><i class="fas fa-industry"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1>RFQ Management</h1>
+        <p>Create and manage your Requests for Quotation</p>
+      </div>
+      <button class="btn btn--primary" id="createRfqBtn" type="button">
+        <i class="fas fa-plus" aria-hidden="true"></i> New RFQ
+      </button>
+    </div>
+
+    <!-- RFQ List -->
+    <div id="rfqList" class="rfq-list" aria-live="polite">
+      <!-- cards injected by rfq.js -->
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: CREATE RFQ (with optional document attachment)
+     ═══════════════════════════════════════════════════════ -->
+<div id="createRfqModal" class="modal" role="dialog" aria-modal="true"
+     aria-labelledby="createRfqModalTitle" style="display:none">
+  <div class="modal-content modal-large">
+
+    <div class="modal-header">
+      <h3 id="createRfqModalTitle">
+        <i class="fas fa-plus-circle" aria-hidden="true"></i> Create New RFQ
+      </h3>
+      <button class="js-close-modal" type="button" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="createRfqForm">
+
+        <!-- ── Basic Information ── -->
+        <div class="form-section">
+          <h4><i class="fas fa-info-circle" aria-hidden="true"></i> Basic Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rfqTitle">Title <span class="required">*</span></label>
+              <input type="text" id="rfqTitle" class="form-control" required
+                     placeholder="e.g., Battery Pack Assembly" />
+            </div>
+            <div class="form-group">
+              <label for="partNumber">Part Number</label>
+              <input type="text" id="partNumber" class="form-control"
+                     placeholder="e.g., BP-2024-001" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="partName">Part Name</label>
+              <input type="text" id="partName" class="form-control"
+                     placeholder="e.g., Lithium Battery Pack" />
+            </div>
+            <div class="form-group">
+              <label for="quantity">Quantity <span class="required">*</span></label>
+              <input type="number" id="quantity" class="form-control" required
+                     min="1" placeholder="1000" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pricing & Unit ── -->
+        <div class="form-section">
+          <h4><i class="fas fa-dollar-sign" aria-hidden="true"></i> Pricing &amp; Unit</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="targetPrice">Target Price (per unit)</label>
+              <input type="number" step="0.01" id="targetPrice" class="form-control"
+                     min="0" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+              <label for="currency">Currency</label>
+              <select id="currency" class="form-control">
+                <option value="USD">USD ($)</option>
+                <option value="INR">INR (₹)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="unit">Unit of Measure</label>
+              <select id="unit" class="form-control">
+                <option value="units">Units</option>
+                <option value="pcs">Pcs</option>
+                <option value="kg">Kg</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Description ── -->
+        <div class="form-section">
+          <h4><i class="fas fa-align-left" aria-hidden="true"></i> Description</h4>
+          <div class="form-group">
+            <label for="description">Specifications &amp; Requirements</label>
+            <textarea id="description" class="form-control" rows="3"
+                      placeholder="Describe your requirements, specs, quality standards…"></textarea>
+          </div>
+        </div>
+
+        <!-- ── Document Attachment (new) ── -->
+        <div class="form-section">
+          <h4>
+            <i class="fas fa-paperclip" aria-hidden="true"></i>
+            Attach Document
+            <span class="form-hint">(optional — visible to suppliers who quote)</span>
+          </h4>
+
+          <!--
+            id="rfqBrowseBtn"   → triggers rfqFileInput.click()
+            id="rfqFileInput"   → hidden file input, change → State.rfqFile
+            id="rfqFilePreview" → file name / size preview row
+          -->
+          <div class="upload-area upload-area--compact" id="rfqUploadArea"
+               role="button" tabindex="0"
+               aria-label="Click or drag to attach a document to this RFQ">
+            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+            <span>Drag &amp; drop or</span>
+            <button type="button" class="btn btn--outline btn--sm" id="rfqBrowseBtn">
+              Browse file
+            </button>
+            <input type="file" id="rfqFileInput"
+                   accept=".pdf,.dwg,.step,.stp,.iges,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip"
+                   style="display:none" aria-hidden="true" />
+          </div>
+
+          <!-- Preview row (shown after file picked) -->
+          <div id="rfqFilePreview" class="selected-file-row" style="display:none"></div>
+
+        </div>
+
+        <!-- ── Form Actions ── -->
+        <div class="form-actions">
+          <button type="button" class="btn btn--outline js-close-modal">Cancel</button>
+          <!--
+            id="createRfqSubmitBtn" — disabled/restored by handleCreateSubmit()
+          -->
+          <button type="submit" class="btn btn--primary" id="createRfqSubmitBtn">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i> Publish RFQ
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: QUOTES
+     ═══════════════════════════════════════════════════════ -->
+<div id="quotesModal" class="modal" role="dialog" aria-modal="true"
+     aria-labelledby="quotesModalTitle" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="quotesModalTitle">
+        <i class="fas fa-comment-dollar" aria-hidden="true"></i> Supplier Quotes
+      </h3>
+      <button class="js-close-modal" type="button" aria-label="Close">&times;</button>
+    </div>
+    <!-- id="quotesList" → populated by renderQuoteCard() -->
+    <div class="modal-body" id="quotesList" aria-live="polite"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: RFQ DOCUMENTS
+     id="docsModal"     → showEl/hideEl
+     id="docsModalTitle"→ setText() → "Documents — {rfq title}"
+     id="docsModalBody" → setHTML() with doc cards
+     ═══════════════════════════════════════════════════════ -->
+<div id="docsModal" class="modal" role="dialog" aria-modal="true"
+     aria-labelledby="docsModalTitle" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="docsModalTitle">
+        <i class="fas fa-folder-open" aria-hidden="true"></i> RFQ Documents
+      </h3>
+      <button class="js-close-modal" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="docsModalBody" aria-live="polite"></div>
+  </div>
+</div>
+<!-- PO Creation Modal -->
+<div class="modal" id="poCreationModal" style="display: none;">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3><i class="fas fa-file-invoice"></i> <span id="poModalTitle">Create Purchase Order</span></h3>
+            <button class="close-modal" id="closePoModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Part Info Summary -->
+            <div class="info-card" style="margin-bottom: 20px;">
+                <div class="info-row">
+                    <span class="info-label">Part:</span>
+                    <span class="info-value" id="poPartName">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Supplier:</span>
+                    <span class="info-value" id="poSupplierName">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Supplier Email:</span>
+                    <span class="info-value" id="poSupplierEmail">—</span>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" class="form-control" id="poDeliveryDate">
+                </div>
+                <div class="form-group">
+                    <label>Payment Terms</label>
+                    <select class="form-control" id="poPaymentTerms">
+                        <option value="Net 15">Net 15</option>
+                        <option value="Net 30">Net 30</option>
+                        <option value="Net 45">Net 45</option>
+                        <option value="Net 60">Net 60</option>
+                        <option value="Advance">100% Advance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select class="form-control" id="poCurrency">
+                        <option value="USD">USD ($)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" class="form-control" id="poQuantity" step="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Unit Price</label>
+                    <input type="number" class="form-control" id="poUnitPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Total Value</label>
+                    <div class="form-control-static" id="poTotalValue">$0.00</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Special Instructions</label>
+                <textarea class="form-control" id="poSpecialInstructions" rows="2" placeholder="Any special instructions..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Shipping Requirements</label>
+                <textarea class="form-control" id="poShippingRequirements" rows="2" placeholder="Shipping instructions..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Internal Notes (OEM only)</label>
+                <textarea class="form-control" id="poInternalNotes" rows="2" placeholder="Notes for internal reference..."></textarea>
+            </div>
+            
+            <!-- Commercial Summary -->
+            <div class="commercial-summary" style="background: var(--gray-50); padding: 16px; border-radius: var(--radius); margin-top: 16px;">
+                <div class="summary-row" style="display: flex; justify-content: space-between;">
+                    <span><strong>Subtotal:</strong></span>
+                    <span id="poSubtotal">$0.00</span>
+                </div>
+                <div class="summary-row" style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                    <span><strong>Grand Total:</strong></span>
+                    <span id="poGrandTotal" style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">$0.00</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn--outline" id="cancelPoBtn">Cancel</button>
+            <button class="btn btn--primary" id="createPoBtn">
+                <i class="fas fa-check"></i> Create Purchase Order
+            </button>
+        </div>
+    </div>
+</div>
+<script type="module" src="./js/pages/oem/rfq.js"></script>
+    <!-- Notification Panel -->
+    <div class="notification-overlay" id="notificationOverlay"></div>
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button id="markAllRead">Mark all as read</button>
+        </div>
+        <div class="notification-list" id="notificationList">
+            <div class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></div>
+        </div>
+    </div>
+<script src="/js/notification.js"></script>
+</body>
+</html>

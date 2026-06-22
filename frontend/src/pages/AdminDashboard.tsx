@@ -37,7 +37,7 @@ const AdminDashboard: React.FC = () => {
 
   const fetchPendingUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/pending-registrations', {
+      const response = await fetch('/api/admin/pending-registrations', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -51,7 +51,7 @@ const AdminDashboard: React.FC = () => {
 
   const fetchApprovedUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch('/api/admin/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -72,7 +72,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleApprove = async (registrationId: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/approve-registration', {
+      const response = await fetch('/api/admin/approve-registration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ const AdminDashboard: React.FC = () => {
   const handleReject = async (registrationId: string) => {
     const reason = prompt('Enter rejection reason:');
     try {
-      const response = await fetch('http://localhost:5000/api/admin/reject-registration', {
+      const response = await fetch('/api/admin/reject-registration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

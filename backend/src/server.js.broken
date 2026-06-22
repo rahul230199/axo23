@@ -1,0 +1,507 @@
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// PostgreSQL connection pool
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+// Test connection
+pool.connect((err, client, release) => {
+  if (err) return console.error('❌ Database connection error:', err.message);
+  console.log('✅ Connected to PostgreSQL database');
+  release();
+});
+
+// Middleware
+app.use(cors({ origin: ['https://axonetworks.com', 'http://localhost:3000'], credentials: true }));
+app.use(express.json());
+
+// ------------------------------
+// AUTHENTICATION
+// ------------------------------
+app.post('/api/auth/admin-login', (req, res) => {
+  const { email, password } = req.body;
+  if (email === 'admin@axonetworks.com' && password === 'admin123') {
+    const token = jwt.sign({ id: 'admin_1', email, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+    return res.json({ success: true, token, user: { id: 'admin_1', email, name: 'Super Admin', role: 'admin' } });
+  }
+  res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { email, name, role, companyName, phone, address } = req.body;
+  try {
+    const existing = await pool.query('SELECT email FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ success: false, message: 'User already exists' });
+    }
+    await pool.query(
+      `INSERT INTO pending_registrations (email, name, role, company_name, phone, address, registered_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [email, name, role, companyName || '', phone || '', address || '']
+    );
+    res.json({ success: true, message: 'Registration submitted for admin approval' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+    res.json({
+      success: true,
+      token,
+      needsReset: user.must_reset_password || false,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1, must_reset_password = false WHERE id = $2', [hashed, decoded.id]);
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: 'Invalid or expired token' });
+  }
+});
+
+// ------------------------------
+// ADMIN – Approve registrations
+// ------------------------------
+app.get('/api/admin/pending-registrations', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    if (decoded.role !== 'admin') return res.status(403).json({ success: false });
+    const result = await pool.query('SELECT id, email, name, role, company_name, phone, address, registered_at FROM pending_registrations');
+    res.json({ success: true, pending: result.rows });
+  } catch (err) {
+    res.status(401).json({ success: false });
+  }
+});
+
+app.post('/api/admin/approve-registration', async (req, res) => {
+  const { registrationId } = req.body;
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    if (decoded.role !== 'admin') return res.status(403).json({ success: false });
+    const pending = await pool.query('SELECT * FROM pending_registrations WHERE id = $1', [registrationId]);
+    if (pending.rows.length === 0) return res.status(404).json({ success: false });
+    const p = pending.rows[0];
+    const username = `${p.name.toLowerCase().replace(/\s/g, '.')}@axonetworks.com`;
+    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase();
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const newUser = await pool.query(
+      `INSERT INTO users (id, email, username, name, role, company_name, phone, address, password_hash, temp_password, must_reset_password, is_active, approved_at, created_at)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, true, true, NOW(), NOW())
+       RETURNING id, email, username, name, role`,
+      [p.email, username, p.name, p.role, p.company_name, p.phone, p.address, hashedPassword, tempPassword]
+    );
+    await pool.query('DELETE FROM pending_registrations WHERE id = $1', [registrationId]);
+    res.json({ success: true, user: { ...newUser.rows[0], tempPassword } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+app.post('/api/admin/reject-registration', async (req, res) => {
+  const { registrationId } = req.body;
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    if (decoded.role !== 'admin') return res.status(403).json({ success: false });
+    await pool.query('DELETE FROM pending_registrations WHERE id = $1', [registrationId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// ------------------------------
+// BUYER DASHBOARD
+// ------------------------------
+app.get('/api/dashboard', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const userId = decoded.id;
+    const activeRFQs = await pool.query('SELECT COUNT(*) FROM rfqs WHERE buyer_id = $1 AND status NOT IN ($2,$3)', [userId, 'closed', 'awarded']);
+    const pendingQuotes = await pool.query('SELECT COUNT(*) FROM quotes WHERE rfq_id IN (SELECT id FROM rfqs WHERE buyer_id = $1) AND status = $2', [userId, 'pending']);
+    const activeOrders = await pool.query('SELECT COUNT(*) FROM purchase_orders WHERE buyer_id = $1 AND status NOT IN ($2,$3)', [userId, 'delivered', 'cancelled']);
+    const totalSpent = await pool.query('SELECT COALESCE(SUM(total_amount),0) FROM purchase_orders WHERE buyer_id = $1 AND status = $2', [userId, 'delivered']);
+    const recentRFQs = await pool.query('SELECT id, rfq_number, title, part_name, quantity, status, created_at FROM rfqs WHERE buyer_id = $1 ORDER BY created_at DESC LIMIT 5', [userId]);
+    const recentOrders = await pool.query('SELECT id, po_number, supplier_name, total_amount, status, created_at FROM purchase_orders WHERE buyer_id = $1 ORDER BY created_at DESC LIMIT 5', [userId]);
+    const monthlyOrders = await pool.query(`
+      SELECT TO_CHAR(created_at, 'Mon') as month, COUNT(*) as orders
+      FROM purchase_orders WHERE buyer_id = $1 AND created_at > NOW() - INTERVAL '6 months'
+      GROUP BY TO_CHAR(created_at, 'Mon') ORDER BY MIN(created_at)
+    `, [userId]);
+    const statusData = [
+      { name: 'Production', value: 45, color: '#3b82f6' },
+      { name: 'QC', value: 25, color: '#8b5cf6' },
+      { name: 'Dispatch', value: 15, color: '#10b981' },
+      { name: 'Delivered', value: 15, color: '#6b7280' },
+    ];
+    res.json({
+      stats: {
+        activeRFQs: parseInt(activeRFQs.rows[0].count),
+        pendingQuotes: parseInt(pendingQuotes.rows[0].count),
+        activeOrders: parseInt(activeOrders.rows[0].count),
+        totalSpent: parseFloat(totalSpent.rows[0].sum),
+      },
+      recentRFQs: recentRFQs.rows,
+      recentOrders: recentOrders.rows,
+      chartData: { monthly: monthlyOrders.rows, status: statusData }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// ------------------------------
+// RFQ endpoints
+// ------------------------------
+app.get('/api/rfqs', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query('SELECT * FROM rfqs WHERE buyer_id = $1 ORDER BY created_at DESC', [decoded.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+app.get('/api/rfqs/:id', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query('SELECT * FROM rfqs WHERE id = $1 AND buyer_id = $2', [req.params.id, decoded.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+app.post('/api/rfqs', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { title, description, partName, quantity, unit, requiredBy, deliveryLocation, paymentTerms, ppapLevel, qualityRequirements, specialInstructions } = req.body;
+    const rfqNumber = `RFQ-${Date.now()}`;
+    const result = await pool.query(
+      `INSERT INTO rfqs (rfq_number, buyer_id, title, description, part_name, quantity, unit, required_by, delivery_location, payment_terms, ppap_level, quality_requirements, special_instructions, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+       RETURNING *`,
+      [rfqNumber, decoded.id, title, description, partName, quantity, unit, requiredBy, deliveryLocation, paymentTerms, ppapLevel, qualityRequirements, specialInstructions, 'draft']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+app.post('/api/rfqs/:id/publish', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    await pool.query('UPDATE rfqs SET status = $1, updated_at = NOW() WHERE id = $2 AND buyer_id = $3', ['open', req.params.id, decoded.id]);
+    const result = await pool.query('SELECT * FROM rfqs WHERE id = $1', [req.params.id]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// ------------------------------
+// Quotes for an RFQ
+// ------------------------------
+app.get('/api/rfqs/:rfqId/quotes', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query(
+      `SELECT q.*, u.name as supplier_name, u.rating as supplier_rating
+       FROM quotes q
+       JOIN users u ON q.supplier_id = u.id
+       WHERE q.rfq_id = $1 AND q.status != 'rejected'`,
+      [req.params.rfqId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+// Accept quote and create PO
+app.post('/api/quotes/:quoteId/accept', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.quoteId]);
+    if (quote.rows.length === 0) return res.status(404).json({ error: 'Quote not found' });
+    const q = quote.rows[0];
+    const rfq = await pool.query('SELECT * FROM rfqs WHERE id = $1', [q.rfq_id]);
+    const rfqData = rfq.rows[0];
+    const poNumber = `PO-${Date.now()}`;
+    const subtotal = q.total_price;
+    const tax = subtotal * 0.1;
+    const shipping = 100;
+    const total = subtotal + tax + shipping;
+    const po = await pool.query(
+      `INSERT INTO purchase_orders (po_number, rfq_id, quote_id, buyer_id, supplier_id, delivery_date, shipping_terms, payment_terms, subtotal, tax, shipping_cost, total_amount, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+       RETURNING *`,
+      [poNumber, q.rfq_id, q.id, decoded.id, q.supplier_id, rfqData.required_by, q.delivery_terms, q.payment_terms, subtotal, tax, shipping, total, 'issued']
+    );
+    await pool.query('UPDATE quotes SET status = $1 WHERE id = $2', ['accepted', q.id]);
+    const milestones = ['PO Accepted', 'Raw Material Ordered', 'Production Started', 'Quality Control', 'Dispatch', 'Delivered'];
+    for (let i = 0; i < milestones.length; i++) {
+      await pool.query(
+        `INSERT INTO milestones (po_id, name, description, "order", status) VALUES ($1, $2, $3, $4, $5)`,
+        [po.rows[0].id, milestones[i], '', i+1, 'pending']
+      );
+    }
+    res.json(po.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to accept quote' });
+  }
+});
+
+// ------------------------------
+// Purchase orders for buyer
+// ------------------------------
+app.get('/api/pos', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query('SELECT * FROM purchase_orders WHERE buyer_id = $1 ORDER BY created_at DESC', [decoded.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+app.get('/api/pos/:id', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const po = await pool.query('SELECT * FROM purchase_orders WHERE id = $1 AND buyer_id = $2', [req.params.id, decoded.id]);
+    if (po.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const milestones = await pool.query('SELECT * FROM milestones WHERE po_id = $1 ORDER BY "order"', [req.params.id]);
+    const messages = await pool.query('SELECT * FROM messages WHERE po_id = $1 ORDER BY created_at', [req.params.id]);
+    res.json({ ...po.rows[0], milestones: milestones.rows, messages: messages.rows });
+  } catch (err) {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+// ------------------------------
+// SUPPLIER ENDPOINTS
+// ------------------------------
+app.get('/api/supplier/rfqs', async (req, res) => {
+  const result = await pool.query('SELECT * FROM rfqs WHERE status = $1 ORDER BY created_at DESC', ['open']);
+  res.json(result.rows);
+});
+
+app.get('/api/supplier/rfqs/:id', async (req, res) => {
+  const result = await pool.query('SELECT * FROM rfqs WHERE id = $1', [req.params.id]);
+  if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+  res.json(result.rows[0]);
+});
+
+app.post('/api/supplier/rfqs/:id/quote', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { unitPrice, leadTimeDays, deliveryTerms, paymentTerms, qualityGuarantee, certifications, notes } = req.body;
+    const rfqId = req.params.id;
+    const quoteNumber = `QT-${Date.now()}`;
+    const quantityResult = await pool.query('SELECT quantity FROM rfqs WHERE id = $1', [rfqId]);
+    const totalPrice = unitPrice * quantityResult.rows[0].quantity;
+    await pool.query(
+      `INSERT INTO quotes (quote_number, rfq_id, supplier_id, unit_price, total_price, lead_time_days, delivery_terms, payment_terms, quality_guarantee, certifications, notes, valid_until, status, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW() + INTERVAL '30 days', 'pending', NOW())`,
+      [quoteNumber, rfqId, decoded.id, unitPrice, totalPrice, leadTimeDays, deliveryTerms, paymentTerms, qualityGuarantee, certifications, notes]
+    );
+    res.json({ success: true, message: 'Quote submitted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to submit quote' });
+  }
+});
+
+app.get('/api/supplier/quotes', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query('SELECT * FROM quotes WHERE supplier_id = $1 ORDER BY submitted_at DESC', [decoded.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+app.get('/api/supplier/pos', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const result = await pool.query('SELECT * FROM purchase_orders WHERE supplier_id = $1 ORDER BY created_at DESC', [decoded.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+app.put('/api/supplier/pos/:poId/milestones/:milestoneId', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { status, notes } = req.body;
+    await pool.query(
+      'UPDATE milestones SET status = $1, notes = $2, completed_at = CASE WHEN $1 = $3 THEN NOW() ELSE completed_at END WHERE id = $4 AND po_id IN (SELECT id FROM purchase_orders WHERE supplier_id = $5)',
+      [status, notes, 'completed', req.params.milestoneId, decoded.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// ------------------------------
+// MESSAGES
+// ------------------------------
+app.get('/api/messages/:poId', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json([]);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const messages = await pool.query(
+      `SELECT m.*, u.name as sender_name
+       FROM messages m
+       JOIN users u ON m.sender_id = u.id
+       WHERE m.po_id = $1
+       ORDER BY m.created_at ASC`,
+      [req.params.poId]
+    );
+    res.json(messages.rows);
+  } catch (err) {
+    res.status(401).json([]);
+  }
+});
+
+app.post('/api/messages/:poId', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { content } = req.body;
+    const user = await pool.query('SELECT name, role FROM users WHERE id = $1', [decoded.id]);
+    const result = await pool.query(
+      `INSERT INTO messages (po_id, sender_id, sender_name, sender_role, content, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       RETURNING *`,
+      [req.params.poId, decoded.id, user.rows[0].name, user.rows[0].role, content]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// ------------------------------
+// PROFILE
+// ------------------------------
+app.get('/api/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const user = await pool.query('SELECT id, email, name, role, company_name, phone, address, tax_id FROM users WHERE id = $1', [decoded.id]);
+    if (user.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json(user.rows[0]);
+  } catch (err) {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+app.put('/api/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { company_name, phone, address, tax_id } = req.body;
+    await pool.query('UPDATE users SET company_name = $1, phone = $2, address = $3, tax_id = $4 WHERE id = $5', [company_name, phone, address, tax_id, decoded.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// ------------------------------
+// HEALTH CHECK
+// ------------------------------
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`✅ API ready`);
+});

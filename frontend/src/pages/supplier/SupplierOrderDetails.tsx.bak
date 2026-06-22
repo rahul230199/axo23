@@ -1,0 +1,309 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, Truck, Calendar, CreditCard, Package, CheckCircle, Clock, Send, Pen, Phone, Mail, MapPin, Upload, X, FileText } from 'lucide-react';
+import { realApi, Message } from '../../services/realApi';
+import { formatCurrency, formatDate, formatDateTime } from '../../utils/formatters';
+
+interface Milestone {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  status: 'pending' | 'in_progress' | 'completed';
+  completed_at?: string;
+  notes?: string;
+}
+
+const SupplierOrderDetails: React.FC = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [po, setPo] = useStatetr>any>(null);
+  const [messages, setMessages] = useStatetr>Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [updating, setUpdating] = useStatetr>string | null>(null);
+  const [signatureName, setSignatureName] = useState('');
+  const [isSigned, setIsSigned] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useStatetr>Milestone | null>(null);
+  const [milestoneComment, setMilestoneComment] = useState('');
+  const [milestoneFiles, setMilestoneFiles] = useStatetr>File[]>([]);
+  const messagesEndRef = useReftr>HTMLDivElement>(null);
+  const fileInputRef = useReftr>HTMLInputElement>(null);
+
+  useEffect(() => { loadData(); const interval = setInterval(loadData, 10000); return () => clearInterval(interval); }, [id]);
+  useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const loadData = async () => {
+    try {
+      const [poData, messagesData] = await Promise.all([realApi.getSupplierPOById(id!), realApi.getMessages(id!)]);
+      setPo(poData);
+      setMessages(messagesData || []);
+      if (poData?.supplier_signature) { setIsSigned(true); setSignatureName(poData.supplier_signature); }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
+  };
+
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    setSending(true);
+    try { const msg = await realApi.sendMessage(id!, newMessage); setMessages([...messages, msg]); setNewMessage(''); }
+    catch (error) { console.error(error); } finally { setSending(false); }
+  };
+
+  const handleUpdateMilestone = async (milestoneId: string, status: string, notes?: string) => {
+    setUpdating(milestoneId);
+    try {
+      await realApi.updateMilestone(id!, milestoneId, status, notes);
+      await loadData();
+      alert(`Milestone updated to ${status}`);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to update milestone');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const openMilestoneModal = (milestone: Milestone) => {
+    setSelectedMilestone(milestone);
+    setMilestoneComment('');
+    setMilestoneFiles([]);
+    setShowMilestoneModal(true);
+  };
+
+  const handleMilestoneUpdate = async () => {
+    if (!selectedMilestone) return;
+    let newStatus = '';
+    if (selectedMilestone.status === 'pending') newStatus = 'in_progress';
+    else if (selectedMilestone.status === 'in_progress') newStatus = 'completed';
+    else return;
+
+    let finalComment = milestoneComment;
+    if (milestoneFiles.length > 0) {
+      const fileNames = milestoneFiles.map(f => f.name).join(', ');
+      finalComment = milestoneComment ? `${milestoneComment}\n\nAttachments: ${fileNames}` : `Attachments: ${fileNames}`;
+    }
+    await handleUpdateMilestone(selectedMilestone.id, newStatus, finalComment);
+    setShowMilestoneModal(false);
+    setSelectedMilestone(null);
+    setMilestoneComment('');
+    setMilestoneFiles([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEventtr>HTMLInputElement>) => {
+    if (e.target.files) {
+      setMilestoneFiles([...milestoneFiles, ...Array.from(e.target.files)]);
+    }
+  };
+  const removeFile = (index: number) => {
+    setMilestoneFiles(milestoneFiles.filter((_, i) => i !== index));
+  };
+
+  const handleSign = async () => {
+    if (!signatureName.trim()) { alert('Please enter your name'); return; }
+    setSigning(true);
+    try {
+      await fetch(`/api/pos/${id}/sign`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({ signature: signatureName, role: 'supplier' }) });
+      setIsSigned(true); alert(`Signed by ${signatureName}`); loadData();
+    } catch (error) { console.error(error); alert('Failed to save signature'); } finally { setSigning(false); }
+  };
+
+  if (loading) return tr>div style={{ padding: '40px' }}>Loading...</div>;
+  if (!po) return tr>div style={{ padding: '40px' }}>Order not found</div>;
+
+  const milestones: Milestone[] = po.milestones || [];
+
+  const canUpdateMilestone = (milestone: Milestone) => {
+    if (milestone.status === 'completed') return false;
+    if (milestone.order === 1) return true;
+    const prev = milestones.find(m => m.order === milestone.order - 1);
+    return prev?.status === 'completed';
+  };
+
+  const getMilestoneButtonLabel = (status: string) => {
+    if (status === 'pending') return 'Start';
+    if (status === 'in_progress') return 'Complete';
+    return 'Done';
+  };
+
+  return (
+    tr>div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      tr>button onClick={() => navigate('/supplier/orders')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#666', marginBottom: '24px', cursor: 'pointer' }}>
+        tr>ChevronLeft size={20} /> Back to Orders
+      tr>/button>
+
+      {/* PO Details Card */}
+      tr>div style={{ background: 'white', borderRadius: '20px', padding: '28px', marginBottom: '24px', border: '1px solid #eef2f6', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        tr>div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          tr>div><h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1a1a2e', marginBottom: '8px' }}>Order {po.po_number}</h1><p style={{ color: '#666', fontSize: '14px' }}>Customer: {po.buyer_name}</p></div>
+          tr>div style={{ padding: '6px 18px', borderRadius: '30px', background: po.status === 'delivered' ? '#e8f5e9' : po.status === 'shipped' ? '#e3f2fd' : '#fff3e0', color: po.status === 'delivered' ? '#2e7d32' : po.status === 'shipped' ? '#1565c0' : '#e65100', fontWeight: '600', fontSize: '14px' }}>{po.status?.toUpperCase()}</div>
+        tr>/div>
+
+        tr>div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px', padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+          tr>div><strong>Delivery Date</strong><br/>{formatDate(po.delivery_date)}</div>
+          tr>div><strong>Total Amount</strong><br/><span style={{ fontSize: '20px', fontWeight: '700', color: '#2d3561' }}>{formatCurrency(po.total_amount)}</span></div>
+        tr>/div>
+
+        tr>h3>Contact Information</h3>
+        tr>div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '28px', padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+          tr>div><strong>Buyer</strong><br/>{po.buyer_name}<br/><Phone size={14} color="#666" /> {po.buyer_phone || 'Not provided'}<br/><Mail size={14} color="#666" /> {po.buyer_email || 'Not provided'}<br/><MapPin size={14} color="#666" /> {po.buyer_address || 'Not provided'}</div>
+          tr>div><strong>Supplier</strong><br/>{po.supplier_name}<br/><Phone size={14} color="#666" /> {po.supplier_phone || 'Not provided'}<br/><Mail size={14} color="#666" /> {po.supplier_email || 'Not provided'}<br/><MapPin size={14} color="#666" /> {po.supplier_address || 'Not provided'}</div>
+        tr>/div>
+
+        tr>h3>Order Items</h3>
+        tr>div style={{ overflowX: 'auto' }}>
+          tr>table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            tr>thead>
+              tr>tr>
+                tr>th style={{ padding: '12px', textAlign: 'left' }}>Item</th>
+                tr>th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
+                tr>th style={{ padding: '12px', textAlign: 'right' }}>Unit Price</th>
+                tr>th style={{ padding: '12px', textAlign: 'right' }}>Total</th>
+              tr>/tr>
+            tr>/thead>
+            tr>tbody>
+              {(po.items || []).map((item: any, idx: number) => (
+                tr>tr key={idx} style={{ borderBottom: '1px solid #eef2f6' }}>
+                  tr>td style={{ padding: '12px' }}>{item.part_name || item.name || 'Material'}</td>
+                  tr>td style={{ padding: '12px', textAlign: 'center' }}>{item.quantity} {item.unit || 'pcs'}</td>
+                  tr>td style={{ padding: '12px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</td>
+                  tr>td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>{formatCurrency(item.total_price)}</td>
+                tr>/tr>
+              ))}
+            tr>/tbody>
+            tr>tfoot style={{ background: '#f8fafc' }}>
+              tr>tr><td colSpan={3} style={{ textAlign: 'right' }}>Subtotal</td><td style={{ textAlign: 'right' }}>{formatCurrency(po.subtotal)}</td></tr>
+              tr>tr><td colSpan={3} style={{ textAlign: 'right' }}>Tax (10%)</td><td style={{ textAlign: 'right' }}>{formatCurrency(po.tax)}</td></tr>
+              tr>tr><td colSpan={3} style={{ textAlign: .right. }}>Shipping</td><td style={{ textAlign: .right. }}>{formatCurrency(po.shipping_cost)}</td></tr>
+              tr>tr style={{ fontWeight: 'bold' }}><td colSpan={3} style={{ textAlign: 'right' }}>Total</td><td style={{ textAlign: 'right', color: '#2d3561' }}>{formatCurrency(po.total_amount)}</td></tr>
+            tr>/tfoot>
+          tr>/table>
+        tr>/div>
+
+        tr>div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #eef2f6' }}>
+          tr>h3>Digital Signatures</h3>
+          tr>div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px' }}>
+            tr>div style={{ flex: 1, minWidth: '200px' }}>
+              tr>p>Buyer Signature</p>
+              tr>div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#fafbfc' }}>
+                {po.buyer_signature ? tr>><p style={{ fontFamily: 'cursive', fontSize: '20px', color: '#2d3561' }}>{po.buyer_signature}</p><p style={{ fontSize: '11px', color: '#10b981' }}>Signed on {formatDate(po.buyer_signed_at)}</p></> : <p>Awaiting buyer signature</p>}
+              tr>/div>
+            tr>/div>
+            tr>div style={{ flex: 1, minWidth: '200px' }}>
+              tr>p>Supplier Signature</p>
+              {isSigned ? (
+                tr>div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#fafbfc' }}>
+                  tr>p style={{ fontFamily: 'cursive', fontSize: '20px', color: '#2d3561' }}>{signatureName}</p>
+                  tr>p style={{ fontSize: '11px', color: '#10b981' }}>Signed on {formatDate(po.supplier_signed_at)}</p>
+                tr>/div>
+              ) : (
+                tr>div>
+                  tr>input type="text" placeholder="Type your full name to sign" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '12px' }} />
+                  tr>button onClick={handleSign} disabled={signing} style={{ padding: '8px 20px', background: '#2d3561', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Pen size={14} /> {signing ? 'Saving...' : 'Sign PO'}</button>
+                tr>/div>
+              )}
+            tr>/div>
+          tr>/div>
+        tr>/div>
+      tr>/div>
+
+      {/* Timeline Section */}
+      tr>div style={{ background: 'white', borderRadius: '20px', padding: '28px', marginBottom: '24px', border: '1px solid #eef2f6', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        tr>h3>Order Timeline</h3>
+        {milestones.length === 0 ? (
+          tr>p style={{ color: '#999', textAlign: 'center', padding: '40px' }}>No timeline milestones available.</p>
+        ) : (
+          tr>div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {milestones.map((m: Milestone, idx: number) => (
+              tr>div key={m.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                tr>div style={{ minWidth: '40px' }}>
+                  tr>div style={{ width: '40px', height: '40px', borderRadius: '50%', background: m.status === 'completed' ? '#e8f5e9' : m.status === 'in_progress' ? '#fff3e0' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {m.status === 'completed' ? tr>CheckCircle size={20} color="#10b981" /> : m.status === 'in_progress' ? <Clock size={20} color="#f59e0b" /> : <span style={{ fontWeight: '600', color: '#666' }}>{idx + 1}</span>}
+                  tr>/div>
+                tr>/div>
+                tr>div style={{ flex: 1 }}>
+                  tr>h4>{m.name}</h4>
+                  tr>p>{m.description}</p>
+                  {m.completed_at && tr>p style={{ fontSize: '11px', color: '#10b981' }}>Completed: {formatDate(m.completed_at)}</p>}
+                  {m.notes && tr>p style={{ fontSize: '11px', color: '#666', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px' }}>📝 {m.notes}</p>}
+                tr>/div>
+                {canUpdateMilestone(m) && m.status !== 'completed' && (
+                  tr>button onClick={() => openMilestoneModal(m)} disabled={updating === m.id} style={{ padding: '6px 16px', background: '#2d3561', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    {getMilestoneButtonLabel(m.status)}
+                  tr>/button>
+                )}
+              tr>/div>
+            ))}
+          tr>/div>
+        )}
+      tr>/div>
+
+      {/* Messages Section */}
+      tr>div style={{ background: 'white', borderRadius: '20px', border: '1px solid #eef2f6', display: 'flex', flexDirection: 'column', height: '450px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        tr>div style={{ padding: '16px 24px', borderBottom: '1px solid #eef2f6', background: '#fafbfc' }}><h3>💬 Messages with Buyer</h3></div>
+        tr>div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+          {messages.length === 0 ? tr>div style={{ textAlign: 'center', padding: '60px', color: '#999' }}>No messages yet. Start a conversation with the buyer.</div> :
+            messages.map((msg) => (
+              tr>div key={msg.id} style={{ display: 'flex', justifyContent: msg.sender_role === 'supplier' ? 'flex-end' : 'flex-start', marginBottom: '16px' }}>
+                tr>div style={{ maxWidth: '70%', padding: '10px 16px', borderRadius: '18px', background: msg.sender_role === 'supplier' ? '#2d3561' : '#f1f5f9', color: msg.sender_role === 'supplier' ? 'white' : '#333' }}>
+                  tr>p>{msg.sender_name}</p><p>{msg.content}</p><p>{formatDateTime(msg.created_at)}</p>
+                tr>/div>
+              tr>/div>
+            ))
+          }
+          tr>div ref={messagesEndRef} />
+        tr>/div>
+        tr>div style={{ padding: '16px', borderTop: '1px solid #eef2f6', display: 'flex', gap: '12px' }}>
+          tr>textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type your message..." style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px', resize: 'none' }} onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} />
+          tr>button onClick={handleSendMessage} disabled={sending} style={{ padding: '0 20px', background: '#2d3561', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}><Send size={18} /></button>
+        tr>/div>
+      tr>/div>
+
+      {/* Milestone Modal */}
+      {showMilestoneModal && selectedMilestone && (
+        tr>div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          tr>div style={{ background: 'white', borderRadius: '20px', padding: '28px', width: '500px', maxWidth: '90%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            tr>div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              tr>h3>Update: {selectedMilestone.name}</h3>
+              tr>button onClick={() => setShowMilestoneModal(false)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#666' }}>&times;</button>
+            tr>/div>
+            tr>div style={{ marginBottom: '20px' }}>
+              tr>label>Comments / Notes</label>
+              tr>textarea value={milestoneComment} onChange={(e) => setMilestoneComment(e.target.value)} rows={4} placeholder="Add any notes or comments about this milestone..." style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px' }} />
+            tr>/div>
+            tr>div style={{ marginBottom: '24px' }}>
+              tr>label>Attachments (optional)</label>
+              tr>div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+                tr>Upload size={28} color="#94a3b8" />
+                tr>p>Click to upload files</p>
+                tr>input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} />
+              tr>/div>
+              {milestoneFiles.length > 0 && (
+                tr>div style={{ marginTop: '16px' }}>
+                  {milestoneFiles.map((file, idx) => (
+                    tr>div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', marginBottom: '8px' }}>
+                      tr>FileText size={14} color="#3b82f6" />
+                      tr>span>{file.name}</span>
+                      tr>button onClick={() => removeFile(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><X size={16} /></button>
+                    tr>/div>
+                  ))}
+                tr>/div>
+              )}
+            tr>/div>
+            tr>div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              tr>button onClick={() => setShowMilestoneModal(false)} style={{ padding: '8px 20px', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              tr>button onClick={handleMilestoneUpdate} style={{ padding: '8px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                {selectedMilestone.status === 'pending' ? 'Start' : 'Complete'} Milestone
+              tr>/button>
+            tr>/div>
+          tr>/div>
+        tr>/div>
+      )}
+    tr>/div>
+  );
+};
+
+export default SupplierOrderDetails;

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Details | AXO Networks</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/oem-dashboard.css" />
+  <link rel="stylesheet" href="./css/shared.css" />
+</head>
+<body>
+
+<div class="oem-container">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>AXO Networks</h2>
+      <p>OEM Portal</p>
+    </div>
+    <nav class="sidebar-nav" aria-label="OEM navigation">
+      <a href="/oem-dashboard.html"  class="nav-item"><i class="fas fa-chart-line"    aria-hidden="true"></i><span>Dashboard</span></a>
+      <a href="/oem-rfq.html"        class="nav-item"><i class="fas fa-file-alt"      aria-hidden="true"></i><span>RFQ Management</span></a>
+      <a href="/oem-orders.html"     class="nav-item active"><i class="fas fa-shopping-cart" aria-hidden="true"></i><span>Orders</span></a>
+      <a href="/oem-suppliers.html"  class="nav-item"><i class="fas fa-truck"          aria-hidden="true"></i><span>Suppliers</span></a>
+      <a href="/oem-documents.html"  class="nav-item"><i class="fas fa-folder-open"   aria-hidden="true"></i><span>Documents</span></a>
+      <a href="/oem-profile.html"    class="nav-item"><i class="fas fa-building"      aria-hidden="true"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logoutBtn" type="button">
+        <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <!-- id="menuToggle" — bindEvents() -->
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="Toggle sidebar">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+      </button>
+      <div class="top-bar-right">
+        <div class="notification-bell" id="notificationBell" aria-label="Notifications">
+          <i class="far fa-bell" aria-hidden="true"></i>
+          <span class="notification-badge">0</span>
+        </div>
+        <div class="user-info">
+          <!-- id="companyName" — setText("companyName", ...) in init() -->
+          <span id="companyName">Loading…</span>
+          <div class="avatar" aria-hidden="true"><i class="fas fa-industry"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ORDER DETAILS CONTAINER
+         id="orderDetailsContainer" — used by loadOrderDetails() to:
+           • Add/remove .loading class during fetch
+           • Replace innerHTML with error/empty state if order not found
+         All named child elements below are populated by setText().
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="orderDetailsContainer" class="order-detail-page">
+
+      <!-- ── Page Header ─────────────────────────────────────── -->
+      <div class="od-page-header">
+        <!-- id="backBtn" — bindEvents() → navigates to OEM_ORDERS -->
+        <button class="btn btn--ghost btn--sm" id="backBtn" type="button">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Orders
+        </button>
+        <span class="od-page-label">Purchase Order</span>
+      </div>
+
+      <!-- ── PO Header Card ──────────────────────────────────── -->
+      <div class="od-header-card">
+        <div class="od-header-card__left">
+          <div class="od-header-card__label">PO Number</div>
+          <!--
+            id="poNumber"
+            setText("poNumber", order.po_number || `PO-${order.id}`)
+          -->
+          <div class="od-header-card__po" id="poNumber">—</div>
+        </div>
+        <div class="od-header-card__right">
+          <!--
+            id="orderStatus"
+            JS sets: statusEl.textContent = formatStatus(order.status)
+                     statusEl.className   = `badge badge--${statusClass}`
+          -->
+          <span id="orderStatus" class="badge badge--neutral">Loading…</span>
+        </div>
+      </div>
+
+      <!-- ── PO Stats Row ────────────────────────────────────── -->
+      <div class="od-stats-row">
+
+        <div class="od-stat">
+          <span class="od-stat__label">
+            <i class="fas fa-building" aria-hidden="true"></i> Supplier
+          </span>
+          <!-- id="supplierName" — setText("supplierName", order.supplier_name) -->
+          <span class="od-stat__value" id="supplierName">—</span>
+        </div>
+
+        <div class="od-stat">
+          <span class="od-stat__label">
+            <i class="fas fa-calendar" aria-hidden="true"></i> Order Date
+          </span>
+          <!-- id="orderDate" — setText("orderDate", formatDate(order.created_at)) -->
+          <span class="od-stat__value" id="orderDate">—</span>
+        </div>
+
+        <div class="od-stat">
+          <span class="od-stat__label">
+            <i class="fas fa-dollar-sign" aria-hidden="true"></i> Total Value
+          </span>
+          <!-- id="orderValue" — setText("orderValue", formatCurrency(order.total_value)) -->
+          <span class="od-stat__value" id="orderValue">—</span>
+        </div>
+
+        <div class="od-stat">
+          <span class="od-stat__label">
+            <i class="fas fa-box" aria-hidden="true"></i> Quantity
+          </span>
+          <!-- id="orderQuantity" — setText("orderQuantity", `${qty} ${unit}`) -->
+          <span class="od-stat__value" id="orderQuantity">—</span>
+        </div>
+
+      </div><!-- /.od-stats-row -->
+
+      <!-- ── Info Cards ──────────────────────────────────────── -->
+      <div class="od-info-grid">
+
+        <div class="od-info-card">
+          <div class="od-info-card__label">Part Name</div>
+          <!-- id="partName" — setText("partName", order.part_name) -->
+          <div class="od-info-card__value" id="partName">—</div>
+        </div>
+
+        <div class="od-info-card">
+          <div class="od-info-card__label">Payment Terms</div>
+          <!-- id="paymentTerms" — setText("paymentTerms", order.payment_terms) -->
+          <div class="od-info-card__value" id="paymentTerms">—</div>
+        </div>
+
+      </div><!-- /.od-info-grid -->
+
+      <!-- ── Production Timeline ─────────────────────────────── -->
+      <div class="od-card">
+        <div class="od-card__header">
+          <h2 class="od-card__title">
+            <i class="fas fa-chart-line" aria-hidden="true"></i> Production Timeline
+          </h2>
+        </div>
+        <div class="od-card__body">
+
+          <!--
+            id="timelineSteps"
+            renderMilestones() injects .milestone-step children here.
+            CSS for .milestone-step--* is in shared.css.
+          -->
+          <div id="timelineSteps" aria-live="polite"></div>
+
+          <!-- Progress bar row -->
+          <div class="od-progress-row">
+            <div class="progress-bar od-progress-bar">
+              <!--
+                id="progressBarFill"
+                renderMilestones(): bar.style.width = `${progress}%`
+              -->
+              <div class="progress-bar__fill" id="progressBarFill" style="width:0%"></div>
+            </div>
+            <!--
+              id="progressText"
+              setText("progressText", `${progress}% Complete`)
+            -->
+            <span class="progress-label" id="progressText">0% Complete</span>
+          </div>
+
+        </div>
+      </div><!-- /.od-card (timeline) -->
+
+      <!-- ── Communication Thread ────────────────────────────── -->
+      <div class="od-card od-chat-card">
+        <div class="od-card__header">
+          <h2 class="od-card__title">
+            <i class="fas fa-comments" aria-hidden="true"></i> Communication with Supplier
+          </h2>
+        </div>
+
+        <!--
+          id="chatMessages"
+          renderMessages() / appendMessage() inject .chat-msg children here.
+          CSS for .chat-msg--* is in shared.css.
+        -->
+        <div class="od-chat-messages" id="chatMessages" aria-live="polite" aria-label="Message thread">
+          <div class="chat-empty">
+            <p>Loading messages…</p>
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="od-chat-input">
+          <!--
+            id="messageInput"
+            sendMessage() reads .value.trim()
+            keydown listener: Enter (no Shift) triggers sendMessage()
+          -->
+          <textarea
+            id="messageInput"
+            class="od-chat-textarea"
+            rows="2"
+            placeholder="Type your message… Shift+Enter for new line, Enter to send"
+            aria-label="Message input"
+          ></textarea>
+
+          <!--
+            id="sendBtn"
+            sendMessage(): btn.disabled = true; btn.textContent = "Sending…"
+          -->
+          <button class="btn btn--primary" id="sendBtn" type="button">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i> Send
+          </button>
+        </div>
+
+      </div><!-- /.od-card (chat) -->
+
+    </div><!-- /#orderDetailsContainer -->
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODULE SCRIPT
+     ═══════════════════════════════════════════════════════ -->
+<script type="module" src="./js/pages/oem/order-details.js"></script>
+
+    <!-- Notification Panel -->
+    <div class="notification-overlay" id="notificationOverlay"></div>
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button id="markAllRead">Mark all as read</button>
+        </div>
+        <div class="notification-list" id="notificationList">
+            <div class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></div>
+        </div>
+    </div>
+<script src="/js/notification.js"></script>
+</body>
+</html>

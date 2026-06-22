@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Clock, AlertCircle, ChevronRight } from 'lucide-react';
+import { Plus, Search, Clock, AlertCircle } from 'lucide-react';
 import { useRFQs } from '../../hooks/useBuyerData';
 import { formatDate, formatNumber } from '../../utils/formatters';
 
@@ -14,8 +14,8 @@ const RFQList: React.FC = () => {
   }
 
   const filteredRFQs = (rfqs || []).filter((rfq: any) =>
-    rfq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rfq.rfqNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    rfq.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    rfq.rfq_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -41,14 +41,14 @@ const RFQList: React.FC = () => {
         {filteredRFQs.map((rfq: any) => (
           <div key={rfq.id} onClick={() => navigate(`/buyer/rfq/${rfq.id}`)} style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', transition: 'all 0.3s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontWeight: '600', color: '#6b7280', fontSize: '13px' }}>{rfq.rfqNumber}</span>
-              <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '12px', background: rfq.status === 'open' ? '#d1fae5' : '#fef3c7', color: rfq.status === 'open' ? '#065f46' : '#92400e' }}>{rfq.status.toUpperCase()}</span>
+              <span style={{ fontWeight: '600', color: '#6b7280', fontSize: '13px' }}>{rfq.rfq_number}</span>
+              <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '12px', background: rfq.status === 'open' ? '#d1fae5' : '#fef3c7', color: rfq.status === 'open' ? '#065f46' : '#92400e' }}>{rfq.status?.toUpperCase() || 'DRAFT'}</span>
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>{rfq.title}</h3>
-            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>{rfq.partName} • Qty: {formatNumber(rfq.quantity)} {rfq.unit}</p>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>{rfq.part_name} • Qty: {formatNumber(rfq.quantity)} {rfq.unit}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#6b7280' }}><Clock size={14} /> {rfq.quotesReceived} quotes</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#6b7280' }}><AlertCircle size={14} /> Due: {formatDate(rfq.deadline)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#6b7280' }}><Clock size={14} /> {rfq.quotes_received || 0} quotes</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#6b7280' }}><AlertCircle size={14} /> Due: {formatDate(rfq.required_by)}</span>
             </div>
           </div>
         ))}

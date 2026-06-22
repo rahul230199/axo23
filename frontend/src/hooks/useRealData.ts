@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { realApi } from '../services/realApi';
-import { DashboardData, RFQ, Quote, PurchaseOrder, SupplierDashboardData } from '../types/real.types';
 
-export function useRealData<T>(fetchFn: () => Promise<T>, deps: any[] = []) {
+export function useRealData<T>(fetchFn: () => Promise<T>, deps: any[] = [], pollInterval?: number) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,28 +21,32 @@ export function useRealData<T>(fetchFn: () => Promise<T>, deps: any[] = []) {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    if (pollInterval) {
+      const interval = setInterval(fetchData, pollInterval);
+      return () => clearInterval(interval);
+    }
+  }, [fetchData, pollInterval]);
 
   return { data, loading, error, refetch: fetchData };
 }
 
-// Buyer Hooks
-export const useDashboardData = () => useRealData<DashboardData>(() => realApi.getDashboardData());
-export const useRFQs = (status?: string) => useRealData<RFQ[]>(() => realApi.getRFQs({ status }), [status]);
-export const useRFQ = (id: string) => useRealData<RFQ>(() => realApi.getRFQById(id), [id]);
-export const useQuotes = (rfqId: string) => useRealData<Quote[]>(() => realApi.getQuotesForRFQ(rfqId), [rfqId]);
-export const usePOs = (status?: string) => useRealData<PurchaseOrder[]>(() => realApi.getPOs({ status }), [status]);
-export const usePO = (id: string) => useRealData<PurchaseOrder>(() => realApi.getPOById(id), [id]);
+// Buyer hooks
+export const useDashboardData = () => useRealData(() => realApi.getDashboard(), [], 10000);
+export const useRFQs = () => useRealData(() => realApi.getRFQs(), [], 10000);
+export const useRFQ = (id: string) => useRealData(() => realApi.getRFQById(id), [id], 10000);
+export const usePOs = () => useRealData(() => realApi.getPOs(), [], 10000);
+export const usePO = (id: string) => useRealData(() => realApi.getPOById(id), [id], 10000);
 
-// Supplier Hooks
-export const useSupplierDashboard = () => useRealData<SupplierDashboardData>(() => realApi.getSupplierDashboard());
-export const useAvailableRFQs = () => useRealData<RFQ[]>(() => realApi.getAvailableRFQs());
-export const useSupplierRFQ = (id: string) => useRealData<RFQ>(() => realApi.getSupplierRFQById(id), [id]);
-export const useSupplierQuotes = () => useRealData<Quote[]>(() => realApi.getSupplierQuotes());
-export const useSupplierPOs = () => useRealData<PurchaseOrder[]>(() => realApi.getSupplierPOs());
-export const useSupplierPO = (id: string) => useRealData<PurchaseOrder>(() => realApi.getSupplierPOById(id), [id]);
+// Supplier hooks
+export const useSupplierDashboard = () => useRealData(() => realApi.getDashboard(), [], 10000);
+export const useAvailableRFQs = () => useRealData(() => realApi.getSupplierRFQs(), [], 10000);
+export const useSupplierQuotes = () => useRealData(() => realApi.getSupplierQuotes(), [], 10000);
+export const useSupplierPOs = () => useRealData(() => realApi.getSupplierPOs(), [], 10000);
+export const useSupplierPO = (id: string) => useRealData(() => realApi.getSupplierPOById(id), [id], 10000);
 
-// Shared Hooks
-export const useMessages = (poId: string) => useRealData<any[]>(() => realApi.getMessages(poId), [poId]);
-export const useSuppliers = (search?: string) => useRealData<any[]>(() => realApi.getSuppliers({ search }), [search]);
-export const useProfile = () => useRealData<any>(() => realApi.getProfile());
+// Shared hooks
+export const useMessages = (poId: string) => useRealData(() => realApi.getMessages(poId), [poId], 10000);
+export const useDocuments = (entityId?: string, entityType?: string) =>
+  useRealData(() => realApi.getDocuments({ entityId, entityType }), [entityId, entityType], 5000);
+export const useNotifications = () => useRealData(() => realApi.getNotifications(), [], 10000);
+export const useProfile = () => useRealData(() => realApi.getProfile(), [], 10000);

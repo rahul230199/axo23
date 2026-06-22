@@ -6,6 +6,7 @@
     <title>Folder Documents | AXO Networks</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/oem-dashboard.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
@@ -119,6 +120,12 @@
             <p>OEM Portal</p>
         </div>
         <nav class="sidebar-nav">
+            <a href="/oem-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+            <a href="/oem-rfq.html" class="nav-item"><i class="fas fa-file-alt"></i><span>RFQ Management</span></a>
+            <a href="/oem-orders.html" class="nav-item"><i class="fas fa-shopping-cart"></i><span>Orders</span></a>
+            <a href="/oem-suppliers.html" class="nav-item"><i class="fas fa-truck"></i><span>Suppliers</span></a>
+            <a href="/oem-documents.html" class="nav-item active"><i class="fas fa-folder-open"></i><span>Documents</span></a>
+            <a href="/oem-profile.html" class="nav-item"><i class="fas fa-building"></i><span>Profile</span></a>
         </nav>
         <div class="sidebar-footer">
             <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
@@ -181,6 +188,7 @@
         }
 
         function goBack() {
+            window.location.href = '/oem-documents.html';
         }
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -224,6 +232,7 @@
             }
             
             // Use iframe for download (works in all browsers)
+            const downloadUrl = `/api/oem/documents/${docId}/download?token=${encodeURIComponent(currentToken)}`;
             const iframe = document.getElementById('downloadFrame');
             iframe.src = downloadUrl;
             
@@ -239,6 +248,7 @@
             
             try {
                 const currentToken = getToken();
+                const response = await fetch('/api/oem/documents', {
                     headers: { 'Authorization': `Bearer ${currentToken}` }
                 });
                 
